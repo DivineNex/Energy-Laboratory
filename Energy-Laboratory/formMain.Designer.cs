@@ -34,13 +34,15 @@
             this.label1 = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.button1 = new System.Windows.Forms.Button();
+            this.formsPlot1 = new ScottPlot.FormsPlot();
+            this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
+            this.label2 = new System.Windows.Forms.Label();
             this.IndexColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.ValueColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.DeltaColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.DateTimeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.button1 = new System.Windows.Forms.Button();
-            this.formsPlot1 = new ScottPlot.FormsPlot();
-            this.tabPage2 = new System.Windows.Forms.TabPage();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -48,6 +50,7 @@
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.SuspendLayout();
             // 
             // tabControl1
@@ -82,6 +85,8 @@
             // 
             // splitContainer1.Panel1
             // 
+            this.splitContainer1.Panel1.Controls.Add(this.label2);
+            this.splitContainer1.Panel1.Controls.Add(this.numericUpDown1);
             this.splitContainer1.Panel1.Controls.Add(this.label1);
             this.splitContainer1.Panel1.Controls.Add(this.textBox1);
             this.splitContainer1.Panel1.Controls.Add(this.dataGridView1);
@@ -105,7 +110,7 @@
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(149, 32);
+            this.textBox1.Location = new System.Drawing.Point(159, 32);
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(100, 20);
             this.textBox1.TabIndex = 3;
@@ -127,30 +132,6 @@
             this.dataGridView1.Size = new System.Drawing.Size(366, 408);
             this.dataGridView1.TabIndex = 2;
             this.dataGridView1.CellContentDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_CellContentDoubleClick);
-            // 
-            // IndexColumn
-            // 
-            this.IndexColumn.HeaderText = "Index";
-            this.IndexColumn.Name = "IndexColumn";
-            this.IndexColumn.Width = 50;
-            // 
-            // ValueColumn
-            // 
-            this.ValueColumn.HeaderText = "Value";
-            this.ValueColumn.Name = "ValueColumn";
-            this.ValueColumn.Width = 50;
-            // 
-            // DeltaColumn
-            // 
-            this.DeltaColumn.HeaderText = "Delta";
-            this.DeltaColumn.Name = "DeltaColumn";
-            this.DeltaColumn.Width = 50;
-            // 
-            // DateTimeColumn
-            // 
-            this.DateTimeColumn.HeaderText = "DateTime";
-            this.DateTimeColumn.Name = "DateTimeColumn";
-            this.DateTimeColumn.Width = 170;
             // 
             // button1
             // 
@@ -180,6 +161,61 @@
             this.tabPage2.Text = "tabPage2";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
+            // numericUpDown1
+            // 
+            this.numericUpDown1.Location = new System.Drawing.Point(159, 103);
+            this.numericUpDown1.Maximum = new decimal(new int[] {
+            10000,
+            0,
+            0,
+            0});
+            this.numericUpDown1.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numericUpDown1.Name = "numericUpDown1";
+            this.numericUpDown1.Size = new System.Drawing.Size(120, 20);
+            this.numericUpDown1.TabIndex = 5;
+            this.numericUpDown1.Value = new decimal(new int[] {
+            30,
+            0,
+            0,
+            0});
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(4, 105);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(149, 13);
+            this.label2.TabIndex = 6;
+            this.label2.Text = "+- относительно точки (мин)";
+            // 
+            // IndexColumn
+            // 
+            this.IndexColumn.HeaderText = "Index";
+            this.IndexColumn.Name = "IndexColumn";
+            this.IndexColumn.Width = 50;
+            // 
+            // ValueColumn
+            // 
+            this.ValueColumn.HeaderText = "Value";
+            this.ValueColumn.Name = "ValueColumn";
+            this.ValueColumn.Width = 50;
+            // 
+            // DeltaColumn
+            // 
+            this.DeltaColumn.HeaderText = "Delta";
+            this.DeltaColumn.Name = "DeltaColumn";
+            this.DeltaColumn.Width = 50;
+            // 
+            // DateTimeColumn
+            // 
+            this.DateTimeColumn.HeaderText = "DateTime";
+            this.DateTimeColumn.Name = "DateTimeColumn";
+            this.DateTimeColumn.Width = 150;
+            // 
             // formMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -198,6 +234,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -211,12 +248,14 @@
         private ScottPlot.FormsPlot formsPlot1;
         private System.Windows.Forms.TabPage tabPage2;
         private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.NumericUpDown numericUpDown1;
         private System.Windows.Forms.DataGridViewTextBoxColumn IndexColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn ValueColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn DeltaColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn DateTimeColumn;
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TextBox textBox1;
     }
 }
 

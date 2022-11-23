@@ -79,17 +79,19 @@ namespace Energy_Laboratory
             }
         }
 
-        private void PlotATimeRangeChart(ScottPlot.Plot plot, string fileName,  DateTime startDateTime, DateTime endDateTime, int startIndex = 0)
+        private void PlotATimeRangeChart(ScottPlot.Plot plot, string fileName, DateTime startDateTime, DateTime endDateTime, int startIndex = 0)
         {
             plot.Clear();
             using (StreamReader sr = new StreamReader(fileName))
             {
                 string currentLine;
                 string[] parsedLine;
-                ScatterPlotList<double> valuesList = plot.AddScatterList();
-                bool result = false;
                 DateTime dateTime;
-                int counter = 0; //временно
+                List<double> xData = new List<double>(10000);
+                List<double> yData = new List<double>(10000);
+                bool result;
+
+                formsPlot1.Plot.XAxis.DateTimeFormat(true);
 
                 if (startIndex > 0)
                     sr.ReadLine().Skip(startIndex);
@@ -108,9 +110,12 @@ namespace Energy_Laboratory
                             if (dateTime <= endDateTime)
                             {
                                 result = Double.TryParse(parsedLine[1], out double value);
+
                                 if (result)
-                                    valuesList.Add(counter, value);
-                                counter++;
+                                {
+                                    xData.Add(dateTime.ToOADate());
+                                    yData.Add(value);
+                                }
                             }
                             else
                             {
@@ -119,15 +124,20 @@ namespace Energy_Laboratory
                         }
                     }
                 }
-            }            
+
+                var signalPlot = formsPlot1.Plot.AddSignalXY(xData.ToArray(), yData.ToArray());
+
+                formsPlot1.Refresh();
+
+            }
         }
 
         private void dataGridView1_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             string dateStr = dataGridView1.Rows[e.RowIndex].Cells[3].Value.ToString();
             DateTime date = DateTime.Parse(dateStr);
-            DateTime startDateTime = date.AddMinutes(-2);
-            DateTime endDateTime = date.AddMinutes(2);
+            DateTime startDateTime = date.AddMinutes(-(double)numericUpDown1.Value);
+            DateTime endDateTime = date.AddMinutes((double)numericUpDown1.Value);
 
             bool result = Int32.TryParse(dataGridView1.Rows[e.RowIndex].Cells[0].Value.ToString(), out int startIndex);
             
