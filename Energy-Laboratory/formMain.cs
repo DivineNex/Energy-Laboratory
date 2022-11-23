@@ -17,6 +17,8 @@ namespace Energy_Laboratory
 {
     public partial class formMain : Form
     {
+        private delegate void CriticalDeltasHandler(List<string> strings);
+
         private int _criticalDelta = 400;
 
         public formMain()
@@ -33,23 +35,21 @@ namespace Energy_Laboratory
         {
             if (int.TryParse(textBox1.Text, out int value))
                 _criticalDelta = value;
-            FindCriticalDeltaRecords(@"..\..\Data\GA03_1003.csv");
-            //PlotATimeRangeChart(formsPlot1.Plot, @"..\..\Data\GA03_1003.csv", 
-            //    new DateTime(2020, 03, 18, 03, 20, 0), 
-            //    new DateTime(2020, 03, 18, 03, 30, 0));
+            FindCriticalDeltaRecords(@"..\..\Data\GA03_1003.csv", FillCriticalDeltasToDGV);
             formsPlot1.Refresh();
         }
 
-        private void FindCriticalDeltaRecords(string fileName)
+        private void FindCriticalDeltaRecords(string fileName, CriticalDeltasHandler deltasHandler = null)
         {
-            List<string> criticalDeltas = new List<string>();
-
             using (StreamReader sr = new StreamReader(fileName))
             {
+                List<string> criticalDeltas = new List<string>(1000);
                 string currentLine;
-                string[] parsedLine;
+                string[] parsedLine = new string[2];
                 int index = 0;
                 double? prevValue = null;
+                double? delta = 0;
+                bool result = false;
 
                 while ((currentLine = sr.ReadLine()) != null)
                 {
@@ -60,30 +60,26 @@ namespace Energy_Laboratory
                     {
                         if (prevValue != null)
                         {
-                            var delta = Double.Parse(parsedLine[1]) - prevValue;
+                            delta = Double.Parse(parsedLine[1]) - prevValue;
 
                             if (delta >= _criticalDelta)
+                            {
+                                parsedLine[0] = parsedLine[0].Substring(1, parsedLine[0].Length - 2);
                                 criticalDeltas.Add($"{index} {parsedLine[1]} {delta} {parsedLine[0]}");
+                            }
                         }
 
-                        bool result = Double.TryParse(parsedLine[1], out double value);
+                        result = Double.TryParse(parsedLine[1], out double value);
                         if (result)
                             prevValue = value;
                     }
                 }
 
-                dataGridView1.Rows.Clear();
-                for (int i = 0; i < criticalDeltas.Count; i++)
-                {
-                    var parsedItem = criticalDeltas[i].Split(' ');
-                    dataGridView1.Rows.Add(parsedItem[0], 
-                        parsedItem[1], parsedItem[2], 
-                        parsedItem[3] + " " + parsedItem[4]);
-                }
+                deltasHandler?.Invoke(criticalDeltas);
             }
         }
 
-        private int PlotATimeRangeChart(ScottPlot.Plot plot, string fileName,  DateTime startDateTime, DateTime endDateTime, int startIndex = 0)
+        private void PlotATimeRangeChart(ScottPlot.Plot plot, string fileName,  DateTime startDateTime, DateTime endDateTime, int startIndex = 0)
         {
             plot.Clear();
             using (StreamReader sr = new StreamReader(fileName))
@@ -91,11 +87,12 @@ namespace Energy_Laboratory
                 string currentLine;
                 string[] parsedLine;
                 ScatterPlotList<double> valuesList = plot.AddScatterList();
+                bool result = false;
+                DateTime dateTime;
+                int counter = 0; //временно
 
                 if (startIndex > 0)
                     sr.ReadLine().Skip(startIndex);
-
-                int counter = 0; //временно
 
                 while ((currentLine = sr.ReadLine()) != null)
                 {
@@ -103,15 +100,14 @@ namespace Energy_Laboratory
 
                     if (parsedLine.Length == 2)
                     {
-                        parsedLine[0] = parsedLine[0].Remove(0, 1);
-                        parsedLine[0] = parsedLine[0].Remove(parsedLine[0].Length-1, 1);
-                        var dateTime = DateTime.Parse(parsedLine[0]);
+                        parsedLine[0] = parsedLine[0].Substring(1, parsedLine[0].Length - 2);
+                        dateTime = DateTime.Parse(parsedLine[0]);
 
                         if (dateTime >= startDateTime)
                         {
                             if (dateTime <= endDateTime)
                             {
-                                bool result = Double.TryParse(parsedLine[1], out double value);
+                                result = Double.TryParse(parsedLine[1], out double value);
                                 if (result)
                                     valuesList.Add(counter, value);
                                 counter++;
@@ -123,31 +119,36 @@ namespace Energy_Laboratory
                         }
                     }
                 }
-
-                return valuesList.Count;
             }            
         }
 
         private void dataGridView1_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             string dateStr = dataGridView1.Rows[e.RowIndex].Cells[3].Value.ToString();
-            dateStr = dateStr.Remove(0, 1);
-            dateStr = dateStr.Remove(dateStr.Length - 1, 1);
             DateTime date = DateTime.Parse(dateStr);
-            DateTime startDateTime = date.AddMinutes(-60);
-            DateTime endDateTime = date.AddMinutes(60);
+            DateTime startDateTime = date.AddMinutes(-2);
+            DateTime endDateTime = date.AddMinutes(2);
 
-            int startIndex = 0;
-            bool result = Int32.TryParse(dataGridView1.Rows[e.RowIndex].Cells[0].Value.ToString(), out startIndex);
+            bool result = Int32.TryParse(dataGridView1.Rows[e.RowIndex].Cells[0].Value.ToString(), out int startIndex);
             
             if (result)
             {
-                Text = PlotATimeRangeChart(formsPlot1.Plot, @"..\..\Data\GA03_1003.csv", startDateTime, endDateTime, startIndex).ToString();
+                PlotATimeRangeChart(formsPlot1.Plot, @"..\..\Data\GA03_1003.csv", startDateTime, endDateTime, startIndex);
                 formsPlot1.Refresh();
             }
             else
             {
                 MessageBox.Show("Не удалось преобразовать стартовый индекс строки");
+            }
+        }
+
+        private void FillCriticalDeltasToDGV(List<string> strings)
+        {
+            for (int i = 0; i < strings.Count; i++)
+            {
+                var parsedItem = strings[i].Split(' ');
+                dataGridView1.Rows.Add(parsedItem[0], parsedItem[1], parsedItem[2],
+                                       parsedItem[3] + " " + parsedItem[4]);
             }
         }
     }
