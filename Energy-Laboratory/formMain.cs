@@ -1,6 +1,7 @@
 ﻿using ScottPlot;
 using ScottPlot.Drawing.Colormaps;
 using ScottPlot.Plottable;
+using ScottPlot.Renderable;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -17,6 +18,34 @@ namespace Energy_Laboratory
 {
     public partial class formMain : Form
     {
+        public Dictionary<string, string> paramsFileNames = new Dictionary<string, string>()
+        {
+            { "Уровень нижнего бьефа", "ASU03_0.csv" },
+            { "Уровень верхнего бьефа", "ASU03_1.csv" },
+            { "Открытие направляющего аппарата", "ASU03_8.csv" },
+            { "Напор", "ASU03_10.csv" },
+            { "Активная мощность генератора", "ASU03_17.csv" },
+            { "Реактивная мощность генератора", "ASU03_18.csv" },
+            { "Абсолютная вибрация корпуса генераторного подшипника ЛБ рад..2А", "GA03_1003.csv" },
+            { "Абсолютная вибрация корпуса генераторного подшипника ЛБ рад..СКЗ", "GA03_1005.csv" },
+            { "Абсолютная вибрация корпуса генераторного подшипника НБ рад..2А", "GA03_1013.csv" },
+            { "Абсолютная вибрация корпуса генераторного подшипника НБ рад..СКЗ", "GA03_1015.csv" },
+            { "Абсолютная вибрация опоры подпятника ЛБ верт..2А", "GA03_1023.csv" },
+            { "Абсолютная вибрация опоры подпятника ЛБ верт..СКЗ", "GA03_1025.csv" },
+            { "Абсолютная вибрация опоры подпятника НБ верт..2А", "GA03_1033.csv" },
+            { "Абсолютная вибрация опоры подпятника НБ верт..СКЗ", "GA03_1035.csv" },
+            { "Абсолютная вибрация корпуса турбинного подшипника ЛБ рад..2А", "GA03_1043.csv" },
+            { "Абсолютная вибрация корпуса турбинного подшипника ЛБ рад..СКЗ", "GA03_1045.csv" },
+            { "Абсолютная вибрация корпуса турбинного подшипника НБ рад..2А", "GA03_1053.csv" },
+            { "Абсолютная вибрация корпуса турбинного подшипника НБ рад..СКЗ", "GA03_1055.csv" },
+            { "Биение вала в зоне генераторного подшипника ЛБ.2А", "GA03_1123.csv" },
+            { "Биение вала в зоне генераторного подшипника НБ.2А", "GA03_1133.csv" },
+            { "Биение зеркальной поверхности диска подпятника ЛБ.2А", "GA03_1143.csv" },
+            { "Биение зеркальной поверхности диска подпятника НБ.2А", "GA03_1153.csv" },
+            { "Биение вала в зоне турбинного подшипника ЛБ.2А", "GA03_1163.csv" },
+            { "Биение вала в зоне турбинного подшипника НБ.2А", "GA03_1173.csv" }
+        };
+
         private delegate void CriticalDeltasHandler(List<string> strings);
 
         private int _criticalDelta = 400;
@@ -51,37 +80,35 @@ namespace Energy_Laboratory
                 double? delta = 0;
                 bool result = false;
 
+                sr.ReadLine(); //skip first line
+
                 while ((currentLine = sr.ReadLine()) != null)
                 {
                     index++;
                     parsedLine = currentLine.Split(',');
 
-                    if (parsedLine.Length == 2)
+                    if (prevValue != null)
                     {
-                        if (prevValue != null)
+                        delta = Double.Parse(parsedLine[1]) - prevValue;
+
+                        if (delta >= _criticalDelta)
                         {
-                            delta = Double.Parse(parsedLine[1]) - prevValue;
-
-                            if (delta >= _criticalDelta)
-                            {
-                                parsedLine[0] = parsedLine[0].Substring(1, parsedLine[0].Length - 2);
-                                criticalDeltas.Add($"{index} {parsedLine[1]} {delta} {parsedLine[0]}");
-                            }
+                            parsedLine[0] = parsedLine[0].Substring(1, parsedLine[0].Length - 2);
+                            criticalDeltas.Add($"{index} {parsedLine[1]} {delta} {parsedLine[0]}");
                         }
-
-                        result = Double.TryParse(parsedLine[1], out double value);
-                        if (result)
-                            prevValue = value;
                     }
+
+                    result = Double.TryParse(parsedLine[1], out double value);
+                    if (result)
+                        prevValue = value;
                 }
 
                 deltasHandler?.Invoke(criticalDeltas);
             }
         }
 
-        private void PlotATimeRangeChart(ScottPlot.Plot plot, string fileName, DateTime startDateTime, DateTime endDateTime, int startIndex = 0)
+        private void PlotATimeRangeChart(ScottPlot.Plot plot, string fileName, DateTime startDateTime, DateTime endDateTime, int startIndex = 0, bool single = true)
         {
-            plot.Clear();
             using (StreamReader sr = new StreamReader(fileName))
             {
                 string currentLine;
@@ -93,39 +120,60 @@ namespace Energy_Laboratory
 
                 formsPlot1.Plot.XAxis.DateTimeFormat(true);
 
+                sr.ReadLine(); //skip first line
                 if (startIndex > 0)
-                    sr.ReadLine().Skip(startIndex);
+                    sr.ReadLine().Skip(startIndex-1);
 
                 while ((currentLine = sr.ReadLine()) != null)
                 {
                     parsedLine = currentLine.Split(',');
 
-                    if (parsedLine.Length == 2)
+                    parsedLine[0] = parsedLine[0].Substring(1, parsedLine[0].Length - 2);
+                    dateTime = DateTime.Parse(parsedLine[0]);
+
+                    if (dateTime >= startDateTime)
                     {
-                        parsedLine[0] = parsedLine[0].Substring(1, parsedLine[0].Length - 2);
-                        dateTime = DateTime.Parse(parsedLine[0]);
-
-                        if (dateTime >= startDateTime)
+                        if (dateTime <= endDateTime)
                         {
-                            if (dateTime <= endDateTime)
-                            {
-                                result = Double.TryParse(parsedLine[1], out double value);
+                            result = Double.TryParse(parsedLine[1], out double value);
 
-                                if (result)
-                                {
-                                    xData.Add(dateTime.ToOADate());
-                                    yData.Add(value);
-                                }
-                            }
-                            else
+                            if (result)
                             {
-                                break;
+                                xData.Add(dateTime.ToOADate());
+                                yData.Add(value);
                             }
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                 }
 
-                var signalPlot = formsPlot1.Plot.AddSignalXY(xData.ToArray(), yData.ToArray());
+                try
+                {
+                    if (single)
+                    {
+                        var signalPlot = formsPlot1.Plot.AddSignalXY(xData.ToArray(), yData.ToArray(), color: Color.FromArgb(255, 31, 119, 180));
+                    }
+                    else
+                    {
+                        //Заместо лейбла на оси Y лучше создавать легенду
+
+                        var signalPlot = formsPlot1.Plot.AddSignalXY(xData.ToArray(), yData.ToArray());
+                        var yAxis = formsPlot1.Plot.AddAxis(ScottPlot.Renderable.Edge.Left);
+                        //var xAxis = formsPlot1.Plot.AddAxis(ScottPlot.Renderable.Edge.Bottom);
+                        //xAxis.DateTimeFormat(true);
+                        signalPlot.YAxisIndex = yAxis.AxisIndex;
+                        //signalPlot.XAxisIndex = xAxis.AxisIndex;
+                        yAxis.Label(fileName);
+                        yAxis.Color(signalPlot.Color);
+                        //xAxis.Label(fileName);
+                        //xAxis.Color(signalPlot.Color);
+                    }
+                }
+                catch (Exception) {}
+                
 
                 formsPlot1.Refresh();
 
@@ -136,14 +184,14 @@ namespace Energy_Laboratory
         {
             string dateStr = dataGridView1.Rows[e.RowIndex].Cells[3].Value.ToString();
             DateTime date = DateTime.Parse(dateStr);
-            DateTime startDateTime = date.AddMinutes(-(double)numericUpDown1.Value);
-            DateTime endDateTime = date.AddMinutes((double)numericUpDown1.Value);
+            DateTime startDateTime = date.AddMinutes(-(double)numericUpDown1.Value*60);
+            DateTime endDateTime = date.AddMinutes((double)numericUpDown1.Value*60);
 
             bool result = Int32.TryParse(dataGridView1.Rows[e.RowIndex].Cells[0].Value.ToString(), out int startIndex);
             
             if (result)
             {
-                PlotATimeRangeChart(formsPlot1.Plot, @"..\..\Data\GA03_1003.csv", startDateTime, endDateTime, startIndex);
+                PlotATimeRangeChart(formsPlot1.Plot, @"..\..\Data\GA03_1003.csv", startDateTime, endDateTime, startIndex, true);
                 formsPlot1.Refresh();
             }
             else
@@ -160,6 +208,33 @@ namespace Energy_Laboratory
                 dataGridView1.Rows.Add(parsedItem[0], parsedItem[1], parsedItem[2],
                                        parsedItem[3] + " " + parsedItem[4]);
             }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            string[] collection = checkedListBox1.CheckedItems.Cast<string>().ToArray();
+            formsPlot1.Reset();
+
+            if (collection.Length == 1 ) 
+            {
+                PlotATimeRangeChart(formsPlot1.Plot, $"../../Data/{paramsFileNames[collection[0]]}", dateTimePicker2.Value, dateTimePicker1.Value);
+            }
+            else
+            {
+                PlotATimeRangeChart(formsPlot1.Plot, $"../../Data/{paramsFileNames[collection[0]]}", dateTimePicker2.Value, dateTimePicker1.Value, single: true);
+
+                for (int i = 1; i < collection.Length; i++)
+                {
+                    string fileName = paramsFileNames[collection[i]];
+                    PlotATimeRangeChart(formsPlot1.Plot, $"../../Data/{fileName}", dateTimePicker2.Value, dateTimePicker1.Value, single: false);
+                }
+            }
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            formsPlot1.Reset();
+            formsPlot1.Refresh();
         }
     }
 }
