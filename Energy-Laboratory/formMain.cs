@@ -107,7 +107,7 @@ namespace Energy_Laboratory
             }
         }
 
-        private void PlotATimeRangeChart(ScottPlot.Plot plot, string fileName, DateTime startDateTime, DateTime endDateTime, int startIndex = 0, bool single = true)
+        private void PlotATimeRangeChart(ScottPlot.Plot plot, string fileName, string chartLabel, DateTime startDateTime, DateTime endDateTime, int startIndex = 0, bool single = true)
         {
             using (StreamReader sr = new StreamReader(fileName))
             {
@@ -154,22 +154,23 @@ namespace Energy_Laboratory
                 {
                     if (single)
                     {
-                        var signalPlot = formsPlot1.Plot.AddSignalXY(xData.ToArray(), yData.ToArray(), color: Color.FromArgb(255, 31, 119, 180));
+                        var signalPlot = formsPlot1.Plot.AddSignalXY(xData.ToArray(), yData.ToArray(), color: Color.FromArgb(255, 31, 119, 180), label: chartLabel);
+
+                        plot.Legend();
+                        //plot.YAxis.Label(fileName);
+                        plot.YAxis.Color(signalPlot.Color);
+                        plot.XAxis.Color(signalPlot.Color);
                     }
                     else
                     {
                         //Заместо лейбла на оси Y лучше создавать легенду
 
-                        var signalPlot = formsPlot1.Plot.AddSignalXY(xData.ToArray(), yData.ToArray());
+                        var signalPlot = formsPlot1.Plot.AddSignalXY(xData.ToArray(), yData.ToArray(), label: chartLabel);
                         var yAxis = formsPlot1.Plot.AddAxis(ScottPlot.Renderable.Edge.Left);
-                        //var xAxis = formsPlot1.Plot.AddAxis(ScottPlot.Renderable.Edge.Bottom);
-                        //xAxis.DateTimeFormat(true);
                         signalPlot.YAxisIndex = yAxis.AxisIndex;
-                        //signalPlot.XAxisIndex = xAxis.AxisIndex;
-                        yAxis.Label(fileName);
+                        //yAxis.Label(fileName);
                         yAxis.Color(signalPlot.Color);
-                        //xAxis.Label(fileName);
-                        //xAxis.Color(signalPlot.Color);
+                        plot.Legend();
                     }
                 }
                 catch (Exception) {}
@@ -191,7 +192,9 @@ namespace Energy_Laboratory
             
             if (result)
             {
-                PlotATimeRangeChart(formsPlot1.Plot, @"..\..\Data\GA03_1003.csv", startDateTime, endDateTime, startIndex, true);
+                //Пока что хардкод, потому что только по одному параметру строим dgv
+                string label = "Абсолютная вибрация корпуса генераторного подшипника ЛБ рад. 2А";
+                PlotATimeRangeChart(formsPlot1.Plot, @"..\..\Data\GA03_1003.csv", label, startDateTime, endDateTime, startIndex, true);
                 formsPlot1.Refresh();
             }
             else
@@ -213,20 +216,29 @@ namespace Energy_Laboratory
         private void button2_Click(object sender, EventArgs e)
         {
             string[] collection = checkedListBox1.CheckedItems.Cast<string>().ToArray();
+            if (collection.Length == 0) return;
+
             formsPlot1.Reset();
 
             if (collection.Length == 1 ) 
             {
-                PlotATimeRangeChart(formsPlot1.Plot, $"../../Data/{paramsFileNames[collection[0]]}", dateTimePicker2.Value, dateTimePicker1.Value);
+                string fileName = paramsFileNames[collection[0]];
+                string label = paramsFileNames.FirstOrDefault(x => x.Value == fileName).Key;
+                PlotATimeRangeChart(formsPlot1.Plot, $"../../Data/{fileName}", label, dateTimePicker2.Value, dateTimePicker1.Value, single: true);
             }
             else
             {
-                PlotATimeRangeChart(formsPlot1.Plot, $"../../Data/{paramsFileNames[collection[0]]}", dateTimePicker2.Value, dateTimePicker1.Value, single: true);
+                string fileName = paramsFileNames[collection[0]];
+                string label = paramsFileNames.FirstOrDefault(x => x.Value == fileName).Key;
+
+                PlotATimeRangeChart(formsPlot1.Plot, $"../../Data/{fileName}", label, dateTimePicker2.Value, dateTimePicker1.Value, single: true);
 
                 for (int i = 1; i < collection.Length; i++)
                 {
-                    string fileName = paramsFileNames[collection[i]];
-                    PlotATimeRangeChart(formsPlot1.Plot, $"../../Data/{fileName}", dateTimePicker2.Value, dateTimePicker1.Value, single: false);
+                    fileName = paramsFileNames[collection[i]];
+                    label = paramsFileNames.FirstOrDefault(x => x.Value == fileName).Key;
+
+                    PlotATimeRangeChart(formsPlot1.Plot, $"../../Data/{fileName}", label, dateTimePicker2.Value, dateTimePicker1.Value, single: false);
                 }
             }
         }
