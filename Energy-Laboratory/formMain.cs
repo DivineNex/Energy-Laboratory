@@ -13,6 +13,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 
 namespace Energy_Laboratory
 {
@@ -57,7 +59,7 @@ namespace Energy_Laboratory
 
         private void formMain_Load(object sender, EventArgs e)
         {
-            
+            comboBox1.SelectedIndex = 0;
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -85,7 +87,7 @@ namespace Energy_Laboratory
                 while ((currentLine = sr.ReadLine()) != null)
                 {
                     index++;
-                    parsedLine = currentLine.Split(',');
+                    parsedLine = ParseCSVRow(currentLine);
 
                     if (prevValue != null)
                     {
@@ -93,7 +95,6 @@ namespace Energy_Laboratory
 
                         if (delta >= _criticalDelta)
                         {
-                            parsedLine[0] = parsedLine[0].Substring(1, parsedLine[0].Length - 2);
                             criticalDeltas.Add($"{index} {parsedLine[1]} {delta} {parsedLine[0]}");
                         }
                     }
@@ -109,6 +110,8 @@ namespace Energy_Laboratory
 
         private void PlotATimeRangeChart(ScottPlot.Plot plot, string fileName, string chartLabel, DateTime startDateTime, DateTime endDateTime, int startIndex = 0, bool single = true)
         {
+            //ДОБАВИТЬ ТЕМЫ OneHalf и OneHalfDark
+
             using (StreamReader sr = new StreamReader(fileName))
             {
                 string currentLine;
@@ -126,9 +129,8 @@ namespace Energy_Laboratory
 
                 while ((currentLine = sr.ReadLine()) != null)
                 {
-                    parsedLine = currentLine.Split(',');
+                    parsedLine = ParseCSVRow(currentLine);
 
-                    parsedLine[0] = parsedLine[0].Substring(1, parsedLine[0].Length - 2);
                     dateTime = DateTime.Parse(parsedLine[0]);
 
                     if (dateTime >= startDateTime)
@@ -247,6 +249,385 @@ namespace Energy_Laboratory
         {
             formsPlot1.Reset();
             formsPlot1.Refresh();
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            FillMapTable(dataGridView2, dateTimePicker3.Value, dateTimePicker4.Value);
+        }
+
+        private void FillMapTable(DataGridView dgv, DateTime startDateTime, DateTime endDateTime)
+        {
+            string mainParamFileName1;
+            string mainParamFileName2;
+            string generatorActivePowerFileName = paramsFileNames["Активная мощность генератора"];
+            string pressureFileName = paramsFileNames["Напор"];
+            string guideVaneOpeningFileName = paramsFileNames["Открытие направляющего аппарата"];
+
+            switch (comboBox1.SelectedIndex)
+            {
+                case 0:
+                    mainParamFileName1 = paramsFileNames["Абсолютная вибрация корпуса генераторного подшипника ЛБ рад..2А"];
+                    mainParamFileName2 = paramsFileNames["Абсолютная вибрация корпуса генераторного подшипника НБ рад..2А"];
+                    break;
+                case 1:
+                    mainParamFileName1 = paramsFileNames["Абсолютная вибрация опоры подпятника ЛБ верт..2А"];
+                    mainParamFileName2 = paramsFileNames["Абсолютная вибрация опоры подпятника НБ верт..2А"];
+                    break;
+                case 2:
+                    mainParamFileName1 = paramsFileNames["Абсолютная вибрация корпуса турбинного подшипника ЛБ рад..2А"];
+                    mainParamFileName2 = paramsFileNames["Абсолютная вибрация корпуса турбинного подшипника НБ рад..2А"];
+                    break;
+                case 3:
+                    mainParamFileName1 = paramsFileNames["Биение вала в зоне генераторного подшипника ЛБ.2А"];
+                    mainParamFileName2 = paramsFileNames["Биение вала в зоне генераторного подшипника НБ.2А"];
+                    break;
+                case 4:
+                    mainParamFileName1 = paramsFileNames["Биение зеркальной поверхности диска подпятника ЛБ.2А"];
+                    mainParamFileName2 = paramsFileNames["Биение зеркальной поверхности диска подпятника НБ.2А"];
+                    break;
+                case 5:
+                    mainParamFileName1 = paramsFileNames["Биение вала в зоне турбинного подшипника ЛБ.2А"];
+                    mainParamFileName2 = paramsFileNames["Биение вала в зоне турбинного подшипника НБ.2А"];
+                    break;
+                default:
+                    mainParamFileName1 = paramsFileNames["Абсолютная вибрация корпуса генераторного подшипника ЛБ рад..2А"];
+                    mainParamFileName2 = paramsFileNames["Абсолютная вибрация корпуса генераторного подшипника НБ рад..2А"];
+                    break;
+            }
+
+            //Добавление рядов по первому главному параметру
+            using (StreamReader sr = new StreamReader($"../../Data/{mainParamFileName1}"))
+            {
+                string currentLine;
+                string[] parsedLine;
+                DateTime dateTime;
+                bool result;
+
+                sr.ReadLine(); //skip first line
+
+                int index = 0;
+                while ((currentLine = sr.ReadLine()) != null)
+                {
+                    parsedLine = ParseCSVRow(currentLine);
+
+                    dateTime = DateTime.Parse(parsedLine[0]);
+
+                    if (dateTime >= startDateTime)
+                    {
+                        if (dateTime <= endDateTime)
+                        {
+                            result = Double.TryParse(parsedLine[1], out double value);
+
+                            if (result)
+                            {
+                                dataGridView2.Rows.Add();
+                                dataGridView2.Rows[index].Cells[0].Value = dateTime.ToString();
+                                dataGridView2.Rows[index++].Cells[1].Value = parsedLine[1];
+                            }
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            //Добавление второго главного параметра
+            using (StreamReader sr = new StreamReader($"../../Data/{mainParamFileName2}"))
+            {
+                string currentLine;
+                string[] parsedLine;
+
+                sr.ReadLine(); //skip first line
+
+                int lastAddedIndex = 0;
+                while ((currentLine = sr.ReadLine()) != null)
+                {
+                    parsedLine = ParseCSVRow(currentLine);
+
+                    string dateTime = DateTime.Parse(parsedLine[0]).ToString();
+
+                    if (DateTime.Parse(dateTime) >= endDateTime)
+                        break;
+
+                    var index = lastAddedIndex;
+                    while (true)
+                    {
+                        if (dateTime == dataGridView2.Rows[index].Cells[0].Value.ToString())
+                        {
+                            dataGridView2.Rows[index].Cells[2].Value = parsedLine[1];
+                            lastAddedIndex = index;
+                            break;
+                        }
+                        else if (DateTime.Parse(dateTime) < DateTime.Parse(dataGridView2.Rows[index].Cells[0].Value.ToString()))
+                        {
+                            break;
+                        }
+                        index++;
+                    }
+                }
+            }
+
+            //Добавление мощности
+            using (StreamReader sr = new StreamReader($"../../Data/{generatorActivePowerFileName}"))
+            {
+                string currentLine;
+                string[] parsedLine;
+
+                sr.ReadLine(); //skip first line
+
+                int lastAddedIndex = 0;
+                while ((currentLine = sr.ReadLine()) != null)
+                {
+                    parsedLine = ParseCSVRow(currentLine);
+
+                    string dateTime = DateTime.Parse(parsedLine[0]).ToString();
+
+                    if (DateTime.Parse(dateTime) >= endDateTime)
+                        break;
+
+                    var index = lastAddedIndex;
+                    while (true)
+                    {
+                        if (dateTime == dataGridView2.Rows[index].Cells[0].Value.ToString())
+                        {
+                            dataGridView2.Rows[index].Cells[3].Value = parsedLine[1];
+                            lastAddedIndex = index;
+                            break;
+                        }
+                        else if (DateTime.Parse(dateTime) < DateTime.Parse(dataGridView2.Rows[index].Cells[0].Value.ToString()))
+                        {
+                            break;
+                        }
+                        index++;
+                    }
+                }
+            }
+
+            //Добавление ОНА
+            using (StreamReader sr = new StreamReader($"../../Data/{guideVaneOpeningFileName}"))
+            {
+                string currentLine;
+                string[] parsedLine;
+
+                sr.ReadLine(); //skip first line
+
+                int lastAddedIndex = 0;
+                while ((currentLine = sr.ReadLine()) != null)
+                {
+                    parsedLine = ParseCSVRow(currentLine);
+
+                    string dateTime = DateTime.Parse(parsedLine[0]).ToString();
+
+                    if (DateTime.Parse(dateTime) >= endDateTime)
+                        break;
+
+                    var index = lastAddedIndex;
+                    while (true)
+                    {
+                        if (dateTime == dataGridView2.Rows[index].Cells[0].Value.ToString())
+                        {
+                            dataGridView2.Rows[index].Cells[4].Value = parsedLine[1];
+                            lastAddedIndex = index;
+                            break;
+                        }
+                        else if (DateTime.Parse(dateTime) < DateTime.Parse(dataGridView2.Rows[index].Cells[0].Value.ToString()))
+                        {
+                            break;
+                        }
+                        index++;
+                    }
+                }
+            }
+
+            //Добавление напора
+            using (StreamReader sr = new StreamReader($"../../Data/{pressureFileName}"))
+            {
+                string currentLine;
+                string[] parsedLine;
+
+                sr.ReadLine(); //skip first line
+
+                int lastAddedIndex = 0;
+                while ((currentLine = sr.ReadLine()) != null)
+                {
+                    parsedLine = ParseCSVRow(currentLine);
+
+                    string dateTime = DateTime.Parse(parsedLine[0]).ToString();
+
+                    if (DateTime.Parse(dateTime) >= endDateTime)
+                        break;
+
+                    var index = lastAddedIndex;
+                    while (true)
+                    {
+                        if (dateTime == dataGridView2.Rows[index].Cells[0].Value.ToString())
+                        {
+                            dataGridView2.Rows[index].Cells[5].Value = parsedLine[1];
+                            lastAddedIndex = index;
+                            break;
+                        }
+                        else if (DateTime.Parse(dateTime) < DateTime.Parse(dataGridView2.Rows[index].Cells[0].Value.ToString()))
+                        {
+                            break;
+                        }
+                        index++;
+                    }
+                }
+            }
+
+            //Заполнение пробелов предыдущими значениями
+            for (int i = 1; i < dataGridView2.Rows.Count; i++)
+            {
+                if (dataGridView2.Rows[i].Cells[1].Value == null)
+                {
+                    dataGridView2.Rows[i].Cells[1].Value = dataGridView2.Rows[i - 1].Cells[1].Value;
+                    dataGridView2.Rows[i].Cells[1].Style.ForeColor = Color.LightGray;
+                }
+
+                if (dataGridView2.Rows[i].Cells[2].Value == null)
+                {
+                    dataGridView2.Rows[i].Cells[2].Value = dataGridView2.Rows[i - 1].Cells[2].Value;
+                    dataGridView2.Rows[i].Cells[2].Style.ForeColor = Color.LightGray;
+                }
+
+                if (dataGridView2.Rows[i].Cells[3].Value == null)
+                {
+                    dataGridView2.Rows[i].Cells[3].Value = dataGridView2.Rows[i - 1].Cells[3].Value;
+                    dataGridView2.Rows[i].Cells[3].Style.ForeColor = Color.LightGray;
+                }
+
+                if (dataGridView2.Rows[i].Cells[4].Value == null)
+                {
+                    dataGridView2.Rows[i].Cells[4].Value = dataGridView2.Rows[i - 1].Cells[4].Value;
+                    dataGridView2.Rows[i].Cells[4].Style.ForeColor = Color.LightGray;
+                }
+
+                if (dataGridView2.Rows[i].Cells[5].Value == null)
+                {
+                    dataGridView2.Rows[i].Cells[5].Value = dataGridView2.Rows[i - 1].Cells[5].Value;
+                    dataGridView2.Rows[i].Cells[5].Style.ForeColor = Color.LightGray;
+                }
+            }
+
+            //Оценка рядов (по A2, по СКЗ еще нет)
+            int limitValue;
+            int criticalValue;
+            switch (comboBox1.SelectedIndex)
+            {
+                case 0:
+                    limitValue = 160;
+                    criticalValue = 200;
+                    break;
+                case 1:
+                    limitValue = 85;
+                    criticalValue = 100;
+                    break;
+                case 2:
+                    limitValue = 70;
+                    criticalValue = 87;
+                    break;
+                default:
+                    MessageBox.Show("Внимание! Возможно, был добавлен еще " +
+                        "один параметр, а крит. значения для него еще не установлены");
+                    return;
+            }
+            for (int i = 0; i < dataGridView2.Rows.Count; i++)
+            {
+                double value = Convert.ToDouble(dataGridView2.Rows[i].Cells[1].Value);
+
+                if (value < criticalValue)
+                    dataGridView2.Rows[i].Cells[6].Style.BackColor = Color.LightGreen;
+                else if (value >= criticalValue && value < criticalValue * 3)
+                    dataGridView2.Rows[i].Cells[6].Style.BackColor = Color.Orange;
+                else if (value >= criticalValue * 3)
+                    dataGridView2.Rows[i].Cells[6].Style.BackColor = Color.LightCoral;
+
+                if ((i != 0) && (value / Convert.ToDouble(dataGridView2.Rows[i - 1].Cells[1].Value) >= 1.3))
+                    dataGridView2.Rows[i].Cells[6].Value = "X";
+                else
+                    dataGridView2.Rows[i].Cells[6].Value = "O";
+            }
+
+            //Построение карты 1
+            formsPlot2.Plot.YAxis.Label("Напор, м");
+            formsPlot2.Plot.XAxis.Label("Открытие направляющего аппарата, %");
+
+            for (int i = 0; i < dataGridView2.Rows.Count; i++)
+            {
+                if (dataGridView2.Rows[i].Cells[0].Value == null ||
+                    dataGridView2.Rows[i].Cells[1].Value == null ||
+                    dataGridView2.Rows[i].Cells[2].Value == null ||
+                    dataGridView2.Rows[i].Cells[3].Value == null ||
+                    dataGridView2.Rows[i].Cells[4].Value == null ||
+                    dataGridView2.Rows[i].Cells[5].Value == null ||
+                    dataGridView2.Rows[i].Cells[6].Value == null)
+                        continue;
+
+                MarkerShape markerShape = MarkerShape.none;
+
+                if (dataGridView2.Rows[i].Cells[6].Value.ToString() == "O")
+                    markerShape = MarkerShape.filledCircle;
+                else if (dataGridView2.Rows[i].Cells[6].Value.ToString() == "X")
+                    markerShape = MarkerShape.cross;
+
+                formsPlot2.Plot.AddMarker(
+                    x: Convert.ToDouble(dataGridView2.Rows[i].Cells[4].Value),
+                    y: Convert.ToDouble(dataGridView2.Rows[i].Cells[5].Value),
+                    size: 10,
+                    shape: markerShape,
+                    color: dataGridView2.Rows[i].Cells[6].Style.BackColor);
+            }
+
+            formsPlot2.Refresh();
+
+            //Построение карты 2
+            formsPlot3.Plot.YAxis.Label("Напор, м");
+            formsPlot3.Plot.XAxis.Label("Активная мощность генератора, МВт");
+
+            for (int i = 0; i < dataGridView2.Rows.Count; i++)
+            {
+                if (dataGridView2.Rows[i].Cells[0].Value == null ||
+                    dataGridView2.Rows[i].Cells[1].Value == null ||
+                    dataGridView2.Rows[i].Cells[2].Value == null ||
+                    dataGridView2.Rows[i].Cells[3].Value == null ||
+                    dataGridView2.Rows[i].Cells[4].Value == null ||
+                    dataGridView2.Rows[i].Cells[5].Value == null ||
+                    dataGridView2.Rows[i].Cells[6].Value == null)
+                    continue;
+
+                MarkerShape markerShape = MarkerShape.none;
+
+                if (dataGridView2.Rows[i].Cells[6].Value.ToString() == "O")
+                    markerShape = MarkerShape.filledCircle;
+                else if (dataGridView2.Rows[i].Cells[6].Value.ToString() == "X")
+                    markerShape = MarkerShape.cross;
+
+                formsPlot3.Plot.AddMarker(
+                    x: Convert.ToDouble(dataGridView2.Rows[i].Cells[3].Value),
+                    y: Convert.ToDouble(dataGridView2.Rows[i].Cells[5].Value),
+                    size: 10,
+                    shape: markerShape,
+                    color: dataGridView2.Rows[i].Cells[6].Style.BackColor);
+            }
+
+            formsPlot3.Refresh();
+        }
+
+        private string[] ParseCSVRow(string str)
+        {
+            string[] parsedStr = str.Split(',');
+            parsedStr[0] = parsedStr[0].Substring(1, parsedStr[0].Length - 2);
+            return parsedStr;
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            dataGridView2.Rows.Clear();
+            formsPlot2.Reset();
+            formsPlot3.Reset();
         }
     }
 }
